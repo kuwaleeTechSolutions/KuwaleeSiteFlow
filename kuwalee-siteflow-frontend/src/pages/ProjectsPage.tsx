@@ -180,6 +180,7 @@ export function ProjectsPage() {
               setFormError(null)
             }}
             onSubmit={(v) => create.mutate(v)}
+            busy={create.isPending}
           />
         </Modal>
       )}

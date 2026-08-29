@@ -33,7 +33,12 @@ api.interceptors.response.use(
       sessionStorage.removeItem('siteflow_user')
     }
     const message = error.response?.data?.message || error.message || 'Request failed'
-    return Promise.reject(new Error(message))
+    // Keep the structured Laravel validation response available to form
+    // mutations. Previously this interceptor replaced AxiosError with a
+    // plain Error, hiding field-level messages and making every failed save
+    // look like a generic request failure.
+    const normalized = Object.assign(new Error(message), { response: error.response })
+    return Promise.reject(normalized)
   },
 )
 

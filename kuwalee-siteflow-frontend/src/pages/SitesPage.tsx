@@ -146,6 +146,7 @@ export function SitesPage() {
           <EntityForm
             fields={[
               { name: 'project_id', label: 'Project', type: 'reference', referenceEndpoint: '/projects', required: true },
+              { name: 'site_code', label: 'Site code', required: true, placeholder: 'ST-01' },
               { name: 'site_name', label: 'Site name', required: true },
               { name: 'location', label: 'Location' },
               { name: 'status', label: 'Status', type: 'select', options: ['active', 'inactive', 'completed'] },
@@ -155,6 +156,7 @@ export function SitesPage() {
               setFormError(null)
             }}
             onSubmit={(v) => create.mutate(v)}
+            busy={create.isPending}
           />
         </Modal>
       )}

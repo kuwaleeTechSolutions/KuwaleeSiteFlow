@@ -1,4 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { fetchReferenceList } from '../lib/api'
 
 export type Field = {
@@ -19,15 +22,26 @@ export function EntityForm({
   onSubmit,
   onCancel,
   submitLabel = 'Save record',
+  busy = false,
 }: {
   fields: Field[]
   onSubmit: (v: Record<string, FormDataEntryValue>) => void
   onCancel: () => void
   submitLabel?: string
+  busy?: boolean
 }) {
-  const [busy, setBusy] = useState(false)
   const [referenceOptions, setReferenceOptions] = useState<Record<string, { id: string; label: string }[]>>({})
   const [loadingRefs, setLoadingRefs] = useState<Record<string, boolean>>({})
+  const formRef = useRef<HTMLFormElement>(null)
+  const schema = useMemo(() => z.object(Object.fromEntries(fields.map((field) => [
+    field.name,
+    field.required
+      ? z.any().refine((value) => value instanceof FileList ? value.length > 0 : String(value ?? '').trim().length > 0, `${field.label} is required.`)
+      : z.any().optional(),
+  ]))).passthrough(), [fields])
+  const { handleSubmit, register, formState: { errors } } = useForm<Record<string, unknown>>({
+    resolver: zodResolver(schema),
+  })
 
   useEffect(() => {
     fields
@@ -42,16 +56,13 @@ export function EntityForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setBusy(true)
-    const data = Object.fromEntries(new FormData(e.currentTarget))
-    onSubmit(data)
-    setBusy(false)
-  }
-
   return (
-    <form className="entity-form" onSubmit={submit}>
+    <form ref={formRef} className="entity-form" onSubmit={handleSubmit(() => {
+      // React Hook Form supplies a synthetic event whose currentTarget is
+      // not guaranteed after its async resolver runs. Read from the stable
+      // form ref so every Save action submits the actual form fields.
+      if (formRef.current) onSubmit(Object.fromEntries(new FormData(formRef.current)))
+    })}>
       {fields.map((f) => (
         <label key={f.name} className={f.type === 'textarea' || f.type === 'file' ? 'span-2' : undefined}>
           <span>
@@ -60,7 +71,7 @@ export function EntityForm({
           </span>
 
           {f.type === 'select' ? (
-            <select name={f.name} required={f.required} defaultValue="">
+            <select {...register(f.name)} required={f.required} defaultValue="">
               <option value="">Select</option>
               {f.options?.map((x) => (
                 <option key={x} value={x}>
@@ -69,7 +80,7 @@ export function EntityForm({
               ))}
             </select>
           ) : f.type === 'reference' ? (
-            <select name={f.name} required={f.required} disabled={loadingRefs[f.name]} defaultValue="">
+            <select {...register(f.name)} required={f.required} disabled={loadingRefs[f.name]} defaultValue="">
               <option value="">{loadingRefs[f.name] ? 'Loading…' : `Select ${f.label.toLowerCase()}`}</option>
               {(referenceOptions[f.name] || []).map((opt) => (
                 <option key={opt.id} value={opt.id}>
@@ -78,14 +89,15 @@ export function EntityForm({
               ))}
             </select>
           ) : f.type === 'textarea' ? (
-            <textarea name={f.name} required={f.required} placeholder={f.placeholder} />
+            <textarea {...register(f.name)} required={f.required} placeholder={f.placeholder} />
           ) : (
-            <input name={f.name} type={f.type || 'text'} step={f.step} required={f.required} placeholder={f.placeholder} />
+            <input {...register(f.name)} type={f.type || 'text'} step={f.step} required={f.required} placeholder={f.placeholder} />
           )}
+          {errors[f.name] && <small className="field-error">{String(errors[f.name]?.message)}</small>}
         </label>
       ))}
       <div className="form-actions">
-        <button type="button" className="button secondary" onClick={onCancel}>
+        <button type="button" className="button secondary" onClick={onCancel} disabled={busy}>
           Cancel
         </button>
         <button className="button primary" disabled={busy}>

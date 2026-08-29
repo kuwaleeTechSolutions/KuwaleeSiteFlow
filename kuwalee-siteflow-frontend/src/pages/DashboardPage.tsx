@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, Building2, ClipboardCheck, IndianRupee, Ruler, ShieldAlert, WalletCards } from 'lucide-react'
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../lib/api'
 import { demoDashboard } from '../lib/demo'
 import type { ApiEnvelope, Dashboard, ProjectDashboard } from '../lib/types'
@@ -21,6 +22,14 @@ export function DashboardPage() {
   const d = q.data || demoDashboard
   const s = d.summary || {}
 
+  if (q.isLoading) {
+    return <div className="loading"><span /><p>Loading your operational overview…</p></div>
+  }
+
+  if (q.isError) {
+    return <div className="alert error">Unable to load the dashboard. Please refresh, or contact an administrator if the problem continues.</div>
+  }
+
   return (
     <>
       <div className="page-head">
@@ -40,7 +49,24 @@ export function DashboardPage() {
         <StatCard label="Compliance alerts" value={s.compliance_expiring_or_expired ?? 0} icon={ShieldAlert} tone="red" />
       </div>
 
-      <section className="dashboard-grid">
+      {d.dashboard_type === 'assigned_sites' ? (
+        <section className="panel">
+          <div className="panel-head"><div><h2>My assigned sites</h2><p>Items that need your next field action.</p></div></div>
+          {(d.sites || []).length === 0 ? <p className="empty-copy">No sites are assigned to you yet.</p> : (
+            <div className="project-list">
+              {d.sites?.map((site) => (
+                <div className="project-row" key={site.id}>
+                  <div className="project-name"><span>{site.project.project_name}</span><strong>{site.site_name}</strong></div>
+                  <div className="project-metrics">
+                    <div><small>Reports to finish</small><b>{site.daily_reports_pending}</b></div>
+                    <div><small>Measurements to finish</small><b>{site.measurements_pending}</b></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : <section className="dashboard-grid">
         <article className="panel span-2">
           <div className="panel-head">
             <div>
@@ -98,6 +124,21 @@ export function DashboardPage() {
               <strong>{money(d.projects?.reduce((a, p) => a + Number(p.financial.outstanding_amount || 0), 0))}</strong>
             </div>
           </div>
+          {(d.projects || []).length > 0 && (
+            <div style={{ height: 180, margin: '18px 0 6px' }} aria-label="Outstanding amount by project">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={d.projects?.map((project) => ({
+                  name: project.project.project_code,
+                  outstanding: Number(project.financial.outstanding_amount || 0),
+                }))}>
+                  <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis fontSize={11} tickLine={false} axisLine={false} width={38} />
+                  <Tooltip formatter={(value) => money(value)} />
+                  <Bar dataKey="outstanding" fill="#1b6b6f" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
           <div className="alert-list">
             <h3>Attention required</h3>
             <p>
@@ -114,7 +155,7 @@ export function DashboardPage() {
             </p>
           </div>
         </article>
-      </section>
+      </section>}
 
       {detail && (
         <Modal title={detail.project.project_name} onClose={() => setDetail(null)}>

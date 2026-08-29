@@ -3,7 +3,7 @@ import { useState } from 'react'
 import * as Icons from 'lucide-react'
 import { useAuth } from '../lib/auth'
 
-type NavItem = { path: string; title: string; icon: string }
+type NavItem = { path: string; title: string; icon: string; permission?: string }
 type NavGroup = { name: string; items: NavItem[] }
 
 const tenantGroups: NavGroup[] = [
@@ -11,43 +11,43 @@ const tenantGroups: NavGroup[] = [
   {
     name: 'Field operations',
     items: [
-      { path: '/projects', title: 'Projects', icon: 'Building2' },
-      { path: '/sites', title: 'Sites', icon: 'MapPinned' },
-      { path: '/daily-reports', title: 'Daily Reports', icon: 'ClipboardList' },
-      { path: '/workers', title: 'Workers', icon: 'Users' },
-      { path: '/attendance', title: 'Attendance', icon: 'CalendarCheck' },
+      { path: '/projects', title: 'Projects', icon: 'Building2', permission: 'projects.view' },
+      { path: '/sites', title: 'Sites', icon: 'MapPinned', permission: 'sites.view' },
+      { path: '/daily-reports', title: 'Daily Reports', icon: 'ClipboardList', permission: 'daily_reports.view' },
+      { path: '/workers', title: 'Workers', icon: 'Users', permission: 'labour.view' },
+      { path: '/attendance', title: 'Attendance', icon: 'CalendarCheck', permission: 'labour.view' },
     ],
   },
   {
     name: 'Resources',
     items: [
-      { path: '/materials', title: 'Materials', icon: 'Boxes' },
-      { path: '/material-transactions', title: 'Material Transactions', icon: 'ArrowLeftRight' },
-      { path: '/equipment', title: 'Equipment', icon: 'Truck' },
-      { path: '/equipment-usage-logs', title: 'Equipment Usage', icon: 'Gauge' },
-      { path: '/fuel-transactions', title: 'Fuel', icon: 'Fuel' },
+      { path: '/materials', title: 'Materials', icon: 'Boxes', permission: 'materials.view' },
+      { path: '/material-transactions', title: 'Material Transactions', icon: 'ArrowLeftRight', permission: 'materials.view' },
+      { path: '/equipment', title: 'Equipment', icon: 'Truck', permission: 'equipment.view' },
+      { path: '/equipment-usage-logs', title: 'Equipment Usage', icon: 'Gauge', permission: 'equipment.view' },
+      { path: '/fuel-transactions', title: 'Fuel', icon: 'Fuel', permission: 'fuel.view' },
     ],
   },
   {
     name: 'Commercial',
     items: [
-      { path: '/boq', title: 'BOQ', icon: 'ListChecks' },
-      { path: '/measurements', title: 'Measurements', icon: 'Ruler' },
-      { path: '/bills', title: 'Bills', icon: 'ReceiptIndianRupee' },
+      { path: '/boq', title: 'BOQ', icon: 'ListChecks', permission: 'billing.view' },
+      { path: '/measurements', title: 'Measurements', icon: 'Ruler', permission: 'measurements.view' },
+      { path: '/bills', title: 'Bills', icon: 'ReceiptIndianRupee', permission: 'billing.view' },
     ],
   },
   {
     name: 'Governance',
     items: [
-      { path: '/documents', title: 'Documents', icon: 'FolderLock' },
-      { path: '/compliance-items', title: 'Compliance', icon: 'ShieldCheck' },
+      { path: '/documents', title: 'Documents', icon: 'FolderLock', permission: 'documents.view' },
+      { path: '/compliance-items', title: 'Compliance', icon: 'ShieldCheck', permission: 'compliance.view' },
     ],
   },
   {
     name: 'Administration',
     items: [
-      { path: '/users', title: 'Users', icon: 'UserCog' },
-      { path: '/roles', title: 'Roles', icon: 'KeySquare' },
+      { path: '/users', title: 'Users', icon: 'UserCog', permission: 'users.view' },
+      { path: '/roles', title: 'Roles', icon: 'KeySquare', permission: 'roles.view' },
     ],
   },
 ]
@@ -64,6 +64,7 @@ export function AppShell() {
   // route by the backend's EnsureOrganizationContext middleware — show
   // them ONLY the system administration menu.
   const groups = user?.is_super_admin ? superAdminGroups : tenantGroups
+  const can = (permission?: string) => !permission || user?.permissions?.includes(permission)
 
   return (
     <div className="app-shell">
@@ -79,10 +80,13 @@ export function AppShell() {
           </button>
         </div>
         <nav>
-          {groups.map((g) => (
+          {groups.map((g) => {
+            const visibleItems = g.items.filter((item) => can(item.permission))
+            if (visibleItems.length === 0) return null
+            return (
             <section key={g.name}>
               <p>{g.name}</p>
-              {g.items.map((item) => {
+              {visibleItems.map((item) => {
                 const Icon = (Icons as unknown as Record<string, typeof Icons.Box>)[item.icon] || Icons.Box
                 return (
                   <NavLink key={item.path} to={item.path} end={item.path === '/'} onClick={() => setOpen(false)}>
@@ -92,7 +96,7 @@ export function AppShell() {
                 )
               })}
             </section>
-          ))}
+          )})}
         </nav>
         <div className="sidebar-footer">
           <Icons.ShieldCheck size={16} />

@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import type { ReactNode } from 'react'
 import { useAuth } from './lib/auth'
 import { AppShell } from './components/AppShell'
 import { LoginPage } from './pages/LoginPage'
@@ -24,6 +25,16 @@ function RootRedirect() {
   return <DashboardPage />
 }
 
+function TenantOnly({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
+  return user?.is_super_admin ? <Navigate to="/system/organizations" replace /> : <>{children}</>
+}
+
+function SuperAdminOnly({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
+  return user?.is_super_admin ? <>{children}</> : <Navigate to="/" replace />
+}
+
 export default function App() {
   return (
     <Routes>
@@ -32,20 +43,20 @@ export default function App() {
         <Route index element={<RootRedirect />} />
 
         {/* Super Admin only */}
-        <Route path="system/organizations" element={<SystemOrganizationsPage />} />
+        <Route path="system/organizations" element={<SuperAdminOnly><SystemOrganizationsPage /></SuperAdminOnly>} />
 
         {/* Dedicated pages — these have nested-resource or workflow needs
             the generic ModulePage cannot handle */}
-        <Route path="projects" element={<ProjectsPage />} />
-        <Route path="sites" element={<SitesPage />} />
-        <Route path="boq" element={<BoqPage />} />
-        <Route path="bills" element={<BillsPage />} />
-        <Route path="daily-reports" element={<DailyReportsPage />} />
-        <Route path="users" element={<UsersPage />} />
-        <Route path="roles" element={<RolesPage />} />
+        <Route path="projects" element={<TenantOnly><ProjectsPage /></TenantOnly>} />
+        <Route path="sites" element={<TenantOnly><SitesPage /></TenantOnly>} />
+        <Route path="boq" element={<TenantOnly><BoqPage /></TenantOnly>} />
+        <Route path="bills" element={<TenantOnly><BillsPage /></TenantOnly>} />
+        <Route path="daily-reports" element={<TenantOnly><DailyReportsPage /></TenantOnly>} />
+        <Route path="users" element={<TenantOnly><UsersPage /></TenantOnly>} />
+        <Route path="roles" element={<TenantOnly><RolesPage /></TenantOnly>} />
 
         {/* Generic CRUD pages driven by features/modules.ts */}
-        <Route path=":moduleKey" element={<ModulePage />} />
+        <Route path=":moduleKey" element={<TenantOnly><ModulePage /></TenantOnly>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
