@@ -15,6 +15,7 @@ class FuelTransactionResource extends JsonResource
             'equipment' => $this->whenLoaded('equipment', fn () => $this->equipment ? [
                 'id' => $this->equipment->uuid, 'equipment_name' => $this->equipment->equipment_name,
             ] : null),
+            'equipment_name' => $this->whenLoaded('equipment', fn () => $this->equipment?->equipment_name),
             'project_id' => $this->whenLoaded('project', fn () => $this->project->uuid),
             'site_id' => $this->whenLoaded('site', fn () => $this->site->uuid),
             'opening_reading' => $this->opening_reading !== null ? (string) $this->opening_reading : null,

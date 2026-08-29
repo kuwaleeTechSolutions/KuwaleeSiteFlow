@@ -7,6 +7,7 @@ use App\Http\Requests\Measurement\RejectMeasurementRequest;
 use App\Http\Requests\Measurement\StoreMeasurementRequest;
 use App\Http\Resources\MeasurementResource;
 use App\Models\Measurement;
+use App\Models\BoqItem;
 use App\Models\Site;
 use App\Services\MeasurementService;
 use Illuminate\Http\Request;
@@ -53,9 +54,18 @@ class MeasurementController extends Controller
 
     public function store(StoreMeasurementRequest $request)
     {
-        $site = Site::findOrFail($request->validated('site_id'));
+        $data = $request->validated();
+        $site = Site::where('uuid', $data['site_id'])->firstOrFail();
+        $data['site_id'] = $site->id;
+        $data['items'] = collect($data['items'])->map(function (array $item) {
+            $item['boq_item_id'] = BoqItem::where('uuid', $item['boq_item_id'])->valueOrFail('id');
+            return $item;
+        })->all();
+        if (! empty($data['revises_measurement_id'])) {
+            $data['revises_measurement_id'] = Measurement::where('uuid', $data['revises_measurement_id'])->valueOrFail('id');
+        }
 
-        $measurement = $this->measurementService->create($site, $request->validated(), $request->user());
+        $measurement = $this->measurementService->create($site, $data, $request->user());
 
         return response()->json([
             'success' => true,

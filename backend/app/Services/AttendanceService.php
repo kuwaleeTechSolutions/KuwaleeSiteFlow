@@ -23,11 +23,21 @@ class AttendanceService
     public function markSingle(Site $site, array $data, User $actor): WorkerAttendance
     {
         return DB::transaction(function () use ($site, $data, $actor) {
+            $shift = $data['shift'] ?? 'day';
+            if (WorkerAttendance::where('worker_id', $data['worker_id'])
+                ->whereDate('attendance_date', $data['attendance_date'])
+                ->where('shift', $shift)
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'worker_id' => ["Attendance for this worker on {$data['attendance_date']} ({$shift}) already exists."],
+                ]);
+            }
+
             $attendance = WorkerAttendance::create(array_merge($data, [
                 'organization_id' => $site->organization_id,
                 'project_id' => $site->project_id,
                 'site_id' => $site->id,
-                'shift' => $data['shift'] ?? 'day',
+                'shift' => $shift,
                 'marked_by' => $actor->id,
             ]));
 
@@ -51,7 +61,7 @@ class AttendanceService
 
             foreach ($entries as $entry) {
                 $exists = WorkerAttendance::where('worker_id', $entry['worker_id'])
-                    ->where('attendance_date', $attendanceDate)
+                    ->whereDate('attendance_date', $attendanceDate)
                     ->where('shift', $shift)
                     ->exists();
 

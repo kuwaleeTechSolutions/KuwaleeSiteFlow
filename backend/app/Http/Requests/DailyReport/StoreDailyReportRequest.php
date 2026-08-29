@@ -9,15 +9,22 @@ use Illuminate\Validation\Rule;
 
 class StoreDailyReportRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (is_numeric($this->input('site_id'))) {
+            $this->merge(['site_id' => Site::find($this->input('site_id'))?->uuid ?? $this->input('site_id')]);
+        }
+    }
+
     public function authorize(): bool
     {
         // Defer to validation's `required`/`exists` rules if site_id is
         // missing or malformed, rather than throwing here.
-        if (! is_numeric($this->input('site_id'))) {
+        if (! is_string($this->input('site_id'))) {
             return true;
         }
 
-        $site = Site::find($this->input('site_id'));
+        $site = Site::where('uuid', $this->input('site_id'))->first();
 
         return $site !== null && $this->user()->can('createForSite', [DailyReport::class, $site]);
     }
@@ -25,7 +32,7 @@ class StoreDailyReportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'site_id' => ['required', 'integer', Rule::exists('sites', 'id')],
+            'site_id' => ['required', 'string', Rule::exists('sites', 'uuid')],
             'report_date' => ['required', 'date', 'before_or_equal:today'],
             'weather' => ['nullable', 'string', 'max:100'],
             'work_activities' => ['nullable', 'string', 'max:5000'],

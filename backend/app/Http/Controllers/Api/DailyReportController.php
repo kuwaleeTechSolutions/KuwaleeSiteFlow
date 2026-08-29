@@ -67,12 +67,13 @@ class DailyReportController extends Controller
 
     public function store(StoreDailyReportRequest $request)
     {
-        $site = Site::findOrFail($request->validated('site_id'));
-
-        $report = DailyReport::create(array_merge($request->validated(), [
-            'project_id' => $site->project_id,
-            'created_by' => $request->user()->id,
-        ]));
+        $site = Site::where('uuid', $request->validated('site_id'))->firstOrFail();
+        $report = DailyReport::create([
+        ...$request->safe()->except('site_id'),
+        'site_id' => $site->id,
+        'project_id' => $site->project_id,
+        'created_by' => $request->user()->id,
+        ]);
 
         $this->auditLog->log('daily_report.created', $report, $request->user());
 

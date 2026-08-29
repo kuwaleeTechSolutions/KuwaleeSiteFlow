@@ -194,6 +194,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/compliance-items/{complianceItem}', [ComplianceItemController::class, 'show'])->middleware('permission:compliance.view');
         Route::put('/compliance-items/{complianceItem}', [ComplianceItemController::class, 'update'])->middleware('permission:compliance.update');
         Route::delete('/compliance-items/{complianceItem}', [ComplianceItemController::class, 'destroy'])->middleware('permission:compliance.delete');
+
+        // Dashboards and exports are tenant resources. They must remain in
+        // the organization-context group so normal organization users can
+        // access only their assigned data; super-admin accounts never enter
+        // this group because they do not have an organization context.
+        Route::get('/dashboard', [DashboardController::class, 'index'])
+            ->middleware('throttle:api-read');
+        Route::get('/projects/{project}/dashboard', [DashboardController::class, 'project'])
+            ->middleware(['permission:projects.view', 'throttle:api-read']);
+        Route::get('/bills/{bill}/pdf', BillPdfController::class)
+            ->middleware(['permission:billing.view', 'throttle:api-export']);
+        Route::get('/measurements/{measurement}/pdf', MeasurementPdfController::class)
+            ->middleware(['permission:measurements.view', 'throttle:api-export']);
     });
 
     /*
@@ -208,12 +221,5 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/organizations/{organization}', [SystemOrganizationController::class, 'show']);
         Route::put('/organizations/{organization}', [SystemOrganizationController::class, 'update']);
 
-        Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('throttle:api-read');
-        Route::get('/projects/{project}/dashboard', [DashboardController::class, 'project'])
-            ->middleware(['permission:projects.view', 'throttle:api-read']);
-        Route::get('/bills/{bill}/pdf', BillPdfController::class)
-            ->middleware(['permission:billing.view', 'throttle:api-export']);
-        Route::get('/measurements/{measurement}/pdf', MeasurementPdfController::class)
-            ->middleware(['permission:measurements.view', 'throttle:api-export']);
     });
 });

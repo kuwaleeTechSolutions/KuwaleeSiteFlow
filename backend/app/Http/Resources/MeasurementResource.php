@@ -13,6 +13,7 @@ class MeasurementResource extends JsonResource
             'id' => $this->uuid,
             'project_id' => $this->whenLoaded('project', fn () => $this->project->uuid),
             'site_id' => $this->whenLoaded('site', fn () => $this->site->uuid),
+            'site_name' => $this->whenLoaded('site', fn () => $this->site->site_name),
             'measurement_date' => $this->measurement_date?->toDateString(),
             'remarks' => $this->remarks,
             'status' => $this->status,

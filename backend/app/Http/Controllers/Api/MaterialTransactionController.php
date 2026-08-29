@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Material\StoreMaterialTransactionRequest;
 use App\Http\Resources\MaterialTransactionResource;
 use App\Models\MaterialTransaction;
+use App\Models\Material;
+use App\Models\Site;
 use App\Services\MaterialStockService;
 use Illuminate\Http\Request;
 
@@ -50,7 +52,13 @@ class MaterialTransactionController extends Controller
 
     public function store(StoreMaterialTransactionRequest $request)
     {
-        $transaction = $this->stockService->createTransaction($request->validated(), $request->user());
+        $data = $request->validated();
+        $data['material_id'] = Material::where('uuid', $data['material_id'])->valueOrFail('id');
+        $data['site_id'] = Site::where('uuid', $data['site_id'])->valueOrFail('id');
+        if (! empty($data['to_site_id'])) {
+            $data['to_site_id'] = Site::where('uuid', $data['to_site_id'])->valueOrFail('id');
+        }
+        $transaction = $this->stockService->createTransaction($data, $request->user());
 
         return response()->json([
             'success' => true,

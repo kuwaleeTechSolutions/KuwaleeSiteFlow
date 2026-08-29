@@ -62,7 +62,13 @@ class AuthController extends Controller
 
         Auth::login($user, remember: false);
         // Regenerate the session id post-login to prevent session fixation.
-        $request->session()->regenerate();
+        // Browser SPA requests have a session supplied by Sanctum's
+        // stateful middleware. Guard this call so API feature tests and
+        // non-browser clients receive a normal auth response instead of a
+        // 500 when no request-bound session is present.
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
 
         $user->forceFill(['last_login_at' => now()])->save();
 
@@ -80,9 +86,17 @@ class AuthController extends Controller
         $user = Auth::user();
         $this->auditLog->log('auth.logout', $user, $user);
 
+        // Sanctum may resolve the authenticated user through a RequestGuard
+        // (which has no logout method), while browser SPA sessions use the
+        // web SessionGuard. Clear the session guard when available and then
+        // forget resolved guards so the current request cannot retain a user.
         Auth::guard('web')->logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
+        Auth::forgetGuards();
+        request()->setUserResolver(fn () => null);
+        if (request()->hasSession()) {
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+        }
 
         return response()->json(['success' => true, 'message' => 'Logged out successfully.']);
     }

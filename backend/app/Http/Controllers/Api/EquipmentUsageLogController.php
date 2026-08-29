@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Equipment\StoreEquipmentUsageLogRequest;
 use App\Http\Resources\EquipmentUsageLogResource;
 use App\Models\EquipmentUsageLog;
+use App\Models\Equipment;
 use App\Models\Site;
+use App\Models\User;
 use App\Services\EquipmentUsageService;
 use Illuminate\Http\Request;
 
@@ -40,9 +42,14 @@ class EquipmentUsageLogController extends Controller
 
     public function store(StoreEquipmentUsageLogRequest $request)
     {
-        $site = Site::findOrFail($request->validated('site_id'));
+        $data = $request->validated();
+        $site = Site::where('uuid', $data['site_id'])->firstOrFail();
+        $data['equipment_id'] = Equipment::where('uuid', $data['equipment_id'])->valueOrFail('id');
+        if (! empty($data['operator_id'])) {
+            $data['operator_id'] = User::where('uuid', $data['operator_id'])->valueOrFail('id');
+        }
 
-        $log = $this->usageService->logUsage($site, $request->validated(), $request->user());
+        $log = $this->usageService->logUsage($site, $data, $request->user());
 
         return response()->json([
             'success' => true,

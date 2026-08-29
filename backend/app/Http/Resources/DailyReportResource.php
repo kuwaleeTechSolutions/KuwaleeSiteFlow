@@ -19,6 +19,7 @@ class DailyReportResource extends JsonResource
                 'id' => $this->site->uuid,
                 'site_name' => $this->site->site_name,
             ]),
+            'site_name' => $this->whenLoaded('site', fn () => $this->site->site_name),
             'report_date' => $this->report_date?->toDateString(),
             'weather' => $this->weather,
             'work_activities' => $this->work_activities,

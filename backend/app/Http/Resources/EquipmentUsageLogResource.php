@@ -14,8 +14,10 @@ class EquipmentUsageLogResource extends JsonResource
             'equipment' => $this->whenLoaded('equipment', fn () => [
                 'id' => $this->equipment->uuid, 'equipment_name' => $this->equipment->equipment_name,
             ]),
+            'equipment_name' => $this->whenLoaded('equipment', fn () => $this->equipment->equipment_name),
             'project_id' => $this->whenLoaded('project', fn () => $this->project->uuid),
             'site_id' => $this->whenLoaded('site', fn () => $this->site->uuid),
+            'site_name' => $this->whenLoaded('site', fn () => $this->site->site_name),
             'usage_date' => $this->usage_date?->toDateString(),
             'hours_used' => (string) $this->hours_used,
             'operator' => $this->whenLoaded('operator', fn () => $this->operator ? [

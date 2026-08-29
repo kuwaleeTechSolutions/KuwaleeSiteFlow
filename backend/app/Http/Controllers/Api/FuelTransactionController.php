@@ -7,6 +7,7 @@ use App\Http\Requests\Fuel\StoreFuelTransactionRequest;
 use App\Http\Requests\Fuel\UpdateFuelTransactionRequest;
 use App\Http\Resources\FuelTransactionResource;
 use App\Models\FuelTransaction;
+use App\Models\Equipment;
 use App\Models\Site;
 use App\Services\FuelTransactionService;
 use Illuminate\Http\Request;
@@ -51,9 +52,13 @@ class FuelTransactionController extends Controller
 
     public function store(StoreFuelTransactionRequest $request)
     {
-        $site = Site::findOrFail($request->validated('site_id'));
+        $data = $request->validated();
+        $site = Site::where('uuid', $data['site_id'])->firstOrFail();
+        if (! empty($data['equipment_id'])) {
+            $data['equipment_id'] = Equipment::where('uuid', $data['equipment_id'])->valueOrFail('id');
+        }
 
-        $transaction = $this->fuelService->record($site, $request->validated(), $request->user());
+        $transaction = $this->fuelService->record($site, $data, $request->user());
 
         return response()->json([
             'success' => true,

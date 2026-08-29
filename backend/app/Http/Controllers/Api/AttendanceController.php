@@ -7,6 +7,7 @@ use App\Http\Requests\Attendance\BulkAttendanceRequest;
 use App\Http\Requests\Attendance\StoreAttendanceRequest;
 use App\Http\Resources\WorkerAttendanceResource;
 use App\Models\Site;
+use App\Models\Worker;
 use App\Models\WorkerAttendance;
 use App\Services\AttendanceService;
 use Illuminate\Database\Eloquent\Collection;
@@ -48,9 +49,11 @@ class AttendanceController extends Controller
 
     public function store(StoreAttendanceRequest $request)
     {
-        $site = Site::findOrFail($request->validated('site_id'));
+        $site = Site::where('uuid', $request->validated('site_id'))->firstOrFail();
+        $data = $request->validated();
+        $data['worker_id'] = Worker::where('uuid', $data['worker_id'])->valueOrFail('id');
 
-        $attendance = $this->attendanceService->markSingle($site, $request->validated(), $request->user());
+        $attendance = $this->attendanceService->markSingle($site, $data, $request->user());
 
         return response()->json([
             'success' => true,
