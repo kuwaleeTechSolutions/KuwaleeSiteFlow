@@ -12,7 +12,10 @@ class StoreDailyReportRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         if (is_numeric($this->input('site_id'))) {
-            $this->merge(['site_id' => Site::find($this->input('site_id'))?->uuid ?? $this->input('site_id')]);
+            // Resolve without the tenant scope so an attempted cross-org ID
+            // reaches policy authorization and returns 403 rather than
+            // leaking validation behaviour.
+            $this->merge(['site_id' => Site::withoutGlobalScopes()->find($this->input('site_id'))?->uuid ?? $this->input('site_id')]);
         }
     }
 

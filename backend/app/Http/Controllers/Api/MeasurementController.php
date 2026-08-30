@@ -34,6 +34,8 @@ class MeasurementController extends Controller
             })
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
             ->when($request->filled('project_id'), fn ($q) => $q->whereHas('project', fn ($qq) => $qq->where('uuid', $request->input('project_id'))))
+            ->when($request->filled('site_id'), fn ($q) => $q->whereHas('site', fn ($qq) => $qq->where('uuid', $request->input('site_id'))))
+            ->when($request->filled('date'), fn ($q) => $q->whereDate('measurement_date', $request->input('date')))
             ->orderByDesc('measurement_date')
             ->paginate($request->integer('per_page', 20));
 

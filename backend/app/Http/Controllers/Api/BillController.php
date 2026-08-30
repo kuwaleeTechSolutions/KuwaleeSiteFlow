@@ -24,6 +24,7 @@ class BillController extends Controller
         $bills = $project->bills()
             ->with('creator', 'certifier')
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
+            ->when($request->filled('date'), fn ($q) => $q->whereDate('bill_date', $request->input('date')))
             ->orderByDesc('bill_date')
             ->paginate($request->integer('per_page', 20));
 

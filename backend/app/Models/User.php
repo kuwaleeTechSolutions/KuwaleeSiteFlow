@@ -53,6 +53,13 @@ class User extends Authenticatable
         return $this->belongsToMany(Role::class, 'user_roles');
     }
 
+    /** Direct, tenant-admin-granted additions. Role permissions remain the
+     * baseline; this relation never bypasses policy or organization checks. */
+    public function directPermissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'user_permissions')->withTimestamps();
+    }
+
     /**
      * In-request cached permission set to avoid re-querying the
      * roles→permissions chain on every hasPermission() call within the same
@@ -60,21 +67,27 @@ class User extends Authenticatable
      */
     protected ?array $permissionCache = null;
 
+    public function clearPermissionCache(): void
+    {
+        $this->permissionCache = null;
+    }
+
     public function permissionNames(): array
     {
         if ($this->permissionCache !== null) {
             return $this->permissionCache;
         }
 
-        return $this->permissionCache = $this->roles()
+        $rolePermissions = $this->roles()
             ->with('permissions:id,name')
             ->get()
             ->pluck('permissions')
             ->flatten()
-            ->pluck('name')
-            ->unique()
-            ->values()
-            ->all();
+            ->pluck('name');
+
+        return $this->permissionCache = $rolePermissions
+            ->merge($this->directPermissions()->pluck('name'))
+            ->unique()->values()->all();
     }
 
     public function hasPermission(string $permission): bool

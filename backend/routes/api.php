@@ -64,6 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/users/{user}', [UserController::class, 'show']); // policy allows self-view without permission
         Route::put('/users/{user}', [UserController::class, 'update']);
         Route::post('/users/{user}/roles', [UserController::class, 'assignRoles'])->middleware('permission:users.update');
+        Route::put('/users/{user}/permissions', [UserController::class, 'syncPermissions'])->middleware('permission:users.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->middleware('permission:users.delete');
 
         Route::get('/roles', [RoleController::class, 'index'])->middleware('permission:roles.view');

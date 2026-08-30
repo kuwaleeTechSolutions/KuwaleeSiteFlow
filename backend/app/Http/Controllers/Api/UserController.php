@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\User\AssignRolesRequest;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
+use App\Http\Requests\User\SyncUserPermissionsRequest;
+use App\Models\Permission;
 use App\Http\Resources\UserResource;
 use App\Models\Role;
 use App\Models\User;
@@ -33,7 +35,7 @@ class UserController extends Controller
         // organization filter is applied explicitly here instead.
         $users = User::query()
             ->where('organization_id', $request->user()->organization_id)
-            ->with('roles')
+            ->with('roles', 'directPermissions')
             ->when($request->filled('search'), fn ($q) => $q->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%'.$request->input('search').'%')
                     ->orWhere('email', 'like', '%'.$request->input('search').'%');
@@ -51,7 +53,7 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new UserResource($user->load('roles.permissions')),
+            'data' => new UserResource($user->load('roles.permissions', 'directPermissions')),
         ]);
     }
 
@@ -123,6 +125,25 @@ class UserController extends Controller
             'success' => true,
             'message' => 'Roles updated successfully.',
             'data' => new UserResource($user->fresh('roles.permissions')),
+        ]);
+    }
+
+    public function syncPermissions(SyncUserPermissionsRequest $request, User $user)
+    {
+        $oldPermissions = $user->directPermissions()->pluck('name')->all();
+        $permissions = Permission::whereIn('name', $request->validated('permission_names'))->pluck('id')->all();
+        $user->directPermissions()->sync($permissions);
+        $user->unsetRelation('directPermissions');
+        $user->clearPermissionCache();
+
+        $this->auditLog->log('user.permissions_changed', $user, $request->user(),
+            ['direct_permissions' => $oldPermissions],
+            ['direct_permissions' => $request->validated('permission_names')]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User permissions updated successfully.',
+            'data' => new UserResource($user->fresh(['roles.permissions', 'directPermissions'])),
         ]);
     }
 

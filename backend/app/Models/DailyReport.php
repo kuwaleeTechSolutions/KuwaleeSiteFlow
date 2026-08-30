@@ -20,6 +20,11 @@ class DailyReport extends Model
         'manpower_deployed', 'equipment_used', 'material_used',
         'problems_delays', 'reason_for_delay', 'safety_incidents',
         'tomorrow_plan', 'remarks', 'created_by',
+        // Workflow-controlled fields. They are only mutated by
+        // DailyReportWorkflowService after policy authorization; omitting
+        // them from fillable silently prevented submitted/approved/returned
+        // transitions from being persisted.
+        'status', 'submitted_by', 'submitted_at', 'reviewed_by', 'reviewed_at', 'review_remarks',
     ];
 
     protected $casts = [

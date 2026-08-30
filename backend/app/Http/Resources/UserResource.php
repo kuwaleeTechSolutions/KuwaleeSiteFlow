@@ -17,6 +17,7 @@ class UserResource extends JsonResource
             'status' => $this->status,
             'last_login_at' => $this->last_login_at,
             'roles' => RoleResource::collection($this->whenLoaded('roles')),
+            'direct_permissions' => $this->whenLoaded('directPermissions', fn () => $this->directPermissions->pluck('name')->values()),
             'created_at' => $this->created_at,
         ];
     }

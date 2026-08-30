@@ -33,6 +33,9 @@ class FuelTransactionController extends Controller
                 });
             })
             ->when($request->filled('equipment_id'), fn ($q) => $q->whereHas('equipment', fn ($qq) => $qq->where('uuid', $request->input('equipment_id'))))
+            ->when($request->filled('project_id'), fn ($q) => $q->whereHas('project', fn ($qq) => $qq->where('uuid', $request->input('project_id'))))
+            ->when($request->filled('site_id'), fn ($q) => $q->whereHas('site', fn ($qq) => $qq->where('uuid', $request->input('site_id'))))
+            ->when($request->filled('date'), fn ($q) => $q->whereDate('created_at', $request->input('date')))
             ->when($request->filled('transaction_type'), fn ($q) => $q->where('transaction_type', $request->input('transaction_type')))
             ->orderByDesc('created_at')
             ->paginate($request->integer('per_page', 50));
