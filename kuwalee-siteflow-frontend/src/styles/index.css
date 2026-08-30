@@ -135,6 +135,15 @@ button { cursor: pointer; }
 .entity-form input:focus, .entity-form select:focus, .entity-form textarea:focus { border-color: var(--teal); box-shadow: 0 0 0 3px #2e8b8318; }
 .entity-form textarea { min-height: 90px; resize: vertical; }
 .form-actions { grid-column: 1/3; display: flex; justify-content: flex-end; gap: 10px; padding-top: 8px; }
+.report-filters { flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid #e5ecef; }
+.report-filters select, .report-filters input { min-height: 38px; border: 1px solid #cfdbe0; border-radius: 8px; padding: 0 10px; background: #fff; }
+.photo-preview { display: flex; flex-direction: column; gap: 8px; overflow: hidden; text-align: left; border: 1px solid #dce7e9; border-radius: 10px; background: #fff; color: #173b57; padding: 8px; cursor: pointer; }
+.photo-preview img { width: 100%; height: 150px; object-fit: cover; border-radius: 6px; background: #edf3f4; }
+.photo-preview b { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.photo-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.permission-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.permission-groups section { border: 1px solid #e1eaed; border-radius: 8px; padding: 12px; }
+.permission-groups h3 { margin: 0 0 8px; color: #173b57; font-size: 13px; text-transform: capitalize; }
 .boq-item-row { display: grid; grid-template-columns: 1fr 2fr 0.7fr 1fr 1fr auto; gap: 8px; margin-bottom: 8px; align-items: center; }
 .boq-item-row input { border: 1px solid #cfdbe0; border-radius: 8px; padding: 8px 9px; font-size: 12px; }
 .permission-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; max-height: 320px; overflow: auto; padding: 4px; }
@@ -199,6 +208,7 @@ button { cursor: pointer; }
   .toolbar { align-items: stretch; gap: 10px; flex-direction: column; }
   .search { width: 100%; }
   .entity-form { grid-template-columns: 1fr; }
+  .permission-groups { grid-template-columns: 1fr; }
   .entity-form label, .entity-form label.span-2, .entity-form label:has(textarea), .entity-form label:has(input[type='file']), .form-actions { grid-column: 1; }
   .boq-item-row { grid-template-columns: 1fr; }
   .login-panel { padding: 28px; }

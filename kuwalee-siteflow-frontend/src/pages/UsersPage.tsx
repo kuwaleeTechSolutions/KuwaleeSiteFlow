@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { KeyRound, Plus, Trash2, UserCircle2 } from 'lucide-react'
+import { KeyRound, Plus, ShieldCheck, Trash2, UserCircle2 } from 'lucide-react'
 import { api } from '../lib/api'
 import { demoRows } from '../lib/demo'
 import { Modal } from '../components/Modal'
@@ -9,12 +9,14 @@ import { StatusPill } from '../components/StatusPill'
 import { Toast } from '../components/Toast'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import type { EntityRecord, Role, User } from '../lib/types'
+import { permissionCatalogue } from '../lib/permissionCatalogue'
 
 export function UsersPage() {
   const demo = sessionStorage.getItem('siteflow_user')?.includes('demo-owner')
   const [show, setShow] = useState(false)
   const [deleting, setDeleting] = useState<EntityRecord | null>(null)
   const [reassigning, setReassigning] = useState<User | null>(null)
+  const [editingPermissions, setEditingPermissions] = useState<User | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null)
 
@@ -156,6 +158,9 @@ export function UsersPage() {
                       <button className="icon-button" title="Change roles" onClick={() => setReassigning(u)}>
                         <KeyRound size={17} />
                       </button>
+                      <button className="icon-button" title="Edit additional permissions" onClick={() => setEditingPermissions(u)}>
+                        <ShieldCheck size={17} />
+                      </button>
                       <button className="icon-button" title="Delete" onClick={() => setDeleting(u as unknown as EntityRecord)}>
                         <Trash2 size={17} />
                       </button>
@@ -245,6 +250,20 @@ export function UsersPage() {
         />
       )}
 
+      {editingPermissions && (
+        <EditPermissionsModal
+          user={editingPermissions}
+          demo={!!demo}
+          onClose={() => setEditingPermissions(null)}
+          onDone={() => {
+            qc.invalidateQueries({ queryKey: ['module', 'users'] })
+            setEditingPermissions(null)
+            setToast({ message: 'Additional permissions updated successfully.' })
+          }}
+          onError={(message) => setToast({ message, tone: 'error' })}
+        />
+      )}
+
       {deleting && (
         <ConfirmDialog
           title="Confirm deletion"
@@ -260,6 +279,48 @@ export function UsersPage() {
       {toast && <Toast message={toast.message} tone={toast.tone} onClose={() => setToast(null)} />}
     </>
   )
+}
+
+function EditPermissionsModal({ user, demo, onClose, onDone, onError }: {
+  user: User
+  demo: boolean
+  onClose: () => void
+  onDone: () => void
+  onError: (message: string) => void
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set(user.direct_permissions || []))
+  const [busy, setBusy] = useState(false)
+  const groups = Object.entries(permissionCatalogue)
+
+  const toggle = (permission: string) => setSelected((previous) => {
+    const next = new Set(previous)
+    if (next.has(permission)) next.delete(permission)
+    else next.add(permission)
+    return next
+  })
+
+  async function save() {
+    setBusy(true)
+    try {
+      if (!demo) await api.put(`/users/${user.id}/permissions`, { permission_names: Array.from(selected) })
+      onDone()
+    } catch (error) {
+      const response = error as { response?: { data?: { message?: string } } }
+      onError(response.response?.data?.message || 'Failed to update permissions.')
+    } finally { setBusy(false) }
+  }
+
+  return <Modal title={`Additional permissions — ${user.name}`} wide onClose={onClose}>
+    <div style={{ padding: 22 }}>
+      <div className="alert" style={{ marginBottom: 16 }}>Roles remain the baseline. These are extra permissions granted only to this user; organization and project/site authorization are still enforced by the backend.</div>
+      <div className="permission-groups">
+        {groups.map(([group, permissions]) => <section key={group}><h3>{group.replaceAll('_', ' ')}</h3><div className="role-check-list">
+          {permissions.map((permission) => <label key={permission} className="permission-check"><input type="checkbox" checked={selected.has(permission)} onChange={() => toggle(permission)} /><span>{permission}</span></label>)}
+        </div></section>)}
+      </div>
+      <div className="form-actions" style={{ padding: '18px 0 0' }}><button className="button secondary" onClick={onClose} disabled={busy}>Cancel</button><button className="button primary" onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save permissions'}</button></div>
+    </div>
+  </Modal>
 }
 
 function ReassignRolesModal({

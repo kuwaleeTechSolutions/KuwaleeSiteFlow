@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Camera, CheckCircle2, Plus, RotateCcw, Send } from 'lucide-react'
 import { api, downloadFile } from '../lib/api'
@@ -9,6 +9,7 @@ import { EmptyState } from '../components/EmptyState'
 import { StatusPill } from '../components/StatusPill'
 import { Toast } from '../components/Toast'
 import { RemarksDialog } from '../components/RemarksDialog'
+import { ReportFilters, type ReportFilterValue } from '../components/ReportFilters'
 import { shortDate } from '../lib/format'
 import type { EntityRecord } from '../lib/types'
 
@@ -19,13 +20,15 @@ export function DailyReportsPage() {
   const [returning, setReturning] = useState<EntityRecord | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null)
+  const [filters, setFilters] = useState<ReportFilterValue>({ projectId: '', siteId: '', date: '', status: '' })
   const qc = useQueryClient()
 
   const q = useQuery({
-    queryKey: ['module', 'daily-reports'],
+    queryKey: ['module', 'daily-reports', filters],
     queryFn: async () => {
       if (demo) return demoRows['daily-reports']
-      return (await api.get('/daily-reports')).data.data as EntityRecord[]
+      const params = Object.fromEntries(Object.entries({ project_id: filters.projectId, site_id: filters.siteId, date: filters.date, status: filters.status }).filter(([, value]) => value))
+      return (await api.get('/daily-reports', { params })).data.data as EntityRecord[]
     },
   })
 
@@ -109,6 +112,7 @@ export function DailyReportsPage() {
       </div>
 
       <section className="panel">
+        <ReportFilters value={filters} onChange={setFilters} statuses={['draft', 'submitted', 'returned', 'approved']} />
         {q.isLoading ? (
           <div className="loading">
             <span />
@@ -132,7 +136,7 @@ export function DailyReportsPage() {
                 {(q.data || []).map((row) => (
                   <tr key={String(row.id)}>
                     <td>{shortDate(row.report_date)}</td>
-                    <td>{String(row.site_name || '—')}</td>
+                    <td>{String(row.site_name || (row.site as { site_name?: string } | undefined)?.site_name || '—')}</td>
                     <td>{String(row.weather || '—')}</td>
                     <td><StatusPill value={String(row.status || '')} /></td>
                     <td className="row-actions">
@@ -278,9 +282,7 @@ function PhotosModal({ report, demo, onClose, onToast }: { report: EntityRecord;
         ) : (
           <div className="photo-list">
             {(photosQuery.data || []).map((p) => (
-              <button key={String(p.id)} className="photo-chip" onClick={() => download(p)}>
-                {String(p.original_filename)}
-              </button>
+              <PhotoPreview key={String(p.id)} photo={p} onDownload={() => download(p)} />
             ))}
           </div>
         )}
@@ -303,4 +305,20 @@ function PhotosModal({ report, demo, onClose, onToast }: { report: EntityRecord;
       </div>
     </Modal>
   )
+}
+
+function PhotoPreview({ photo, onDownload }: { photo: EntityRecord; onDownload: () => void }) {
+  const image = useQuery({
+    queryKey: ['photo-preview', photo.id],
+    queryFn: async () => {
+      const response = await api.get(`/daily-report-photos/${photo.id}/download`, { responseType: 'blob' })
+      return URL.createObjectURL(response.data as Blob)
+    },
+    staleTime: 60_000,
+  })
+  useEffect(() => () => { if (image.data) URL.revokeObjectURL(image.data) }, [image.data])
+  return <button className="photo-preview" onClick={onDownload} title="Download full-size photo">
+    {image.data ? <img src={image.data} alt={String(photo.caption || photo.original_filename || 'Daily report photo')} /> : <span>Loading preview…</span>}
+    <b>{String(photo.caption || photo.original_filename)}</b>
+  </button>
 }

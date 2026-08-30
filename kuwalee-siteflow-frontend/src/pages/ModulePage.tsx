@@ -13,6 +13,7 @@ import { StatusPill } from '../components/StatusPill'
 import { Toast } from '../components/Toast'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { RemarksDialog } from '../components/RemarksDialog'
+import { ReportFilters, type ReportFilterValue } from '../components/ReportFilters'
 import { money, shortDate, titleCase } from '../lib/format'
 import type { ApiEnvelope, EntityRecord } from '../lib/types'
 
@@ -28,6 +29,7 @@ export function ModulePage() {
   const cfg = moduleMap[moduleKey]
   const demo = sessionStorage.getItem('siteflow_user')?.includes('demo-owner')
   const [search, setSearch] = useState('')
+  const [filters, setFilters] = useState<ReportFilterValue>({ projectId: '', siteId: '', date: '', status: '' })
   const [show, setShow] = useState(false)
   const [viewing, setViewing] = useState<EntityRecord | null>(null)
   const [deleting, setDeleting] = useState<EntityRecord | null>(null)
@@ -37,10 +39,11 @@ export function ModulePage() {
   const qc = useQueryClient()
 
   const q = useQuery({
-    queryKey: ['module', moduleKey],
+    queryKey: ['module', moduleKey, filters],
     queryFn: async () => {
       if (demo) return demoRows[moduleKey] || []
-      const res = await api.get<ApiEnvelope<EntityRecord[]> | { data: EntityRecord[] }>(cfg.endpoint)
+      const params = Object.fromEntries(Object.entries({ project_id: filters.projectId, site_id: filters.siteId, date: filters.date, status: filters.status }).filter(([, value]) => value))
+      const res = await api.get<ApiEnvelope<EntityRecord[]> | { data: EntityRecord[] }>(cfg.endpoint, { params })
       const payload = res.data as ApiEnvelope<EntityRecord[]>
       return Array.isArray(payload.data) ? payload.data : []
     },
@@ -153,6 +156,9 @@ export function ModulePage() {
       </div>
 
       <section className="panel">
+        {['attendance', 'material-transactions', 'equipment-usage-logs', 'fuel-transactions', 'measurements', 'compliance-items'].includes(moduleKey) && (
+          <ReportFilters value={filters} onChange={setFilters} statuses={moduleKey === 'measurements' ? ['draft', 'submitted', 'approved', 'rejected'] : moduleKey === 'fuel-transactions' ? ['reviewed', 'pending'] : []} />
+        )}
         <div className="toolbar">
           <label className="search">
             <Search />

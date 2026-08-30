@@ -18,6 +18,7 @@ export type User = {
   status?: string
   roles?: Role[]
   permissions?: string[]
+  direct_permissions?: string[]
   organization?: { id: string; name: string } | null
   is_super_admin?: boolean
   last_login_at?: string | null

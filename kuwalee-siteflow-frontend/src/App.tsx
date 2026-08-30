@@ -13,6 +13,7 @@ import { DailyReportsPage } from './pages/DailyReportsPage'
 import { UsersPage } from './pages/UsersPage'
 import { RolesPage } from './pages/RolesPage'
 import { SystemOrganizationsPage } from './pages/SystemOrganizationsPage'
+import { ApprovalsPage } from './pages/ApprovalsPage'
 
 function Protected() {
   const { user } = useAuth()
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="boq" element={<TenantOnly><BoqPage /></TenantOnly>} />
         <Route path="bills" element={<TenantOnly><BillsPage /></TenantOnly>} />
         <Route path="daily-reports" element={<TenantOnly><DailyReportsPage /></TenantOnly>} />
+        <Route path="approvals" element={<TenantOnly><ApprovalsPage /></TenantOnly>} />
         <Route path="users" element={<TenantOnly><UsersPage /></TenantOnly>} />
         <Route path="roles" element={<TenantOnly><RolesPage /></TenantOnly>} />
 

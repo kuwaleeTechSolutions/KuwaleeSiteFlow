@@ -15,6 +15,8 @@ type BillItemRow = { measurement_item_id: string; quantity_billed: string }
 export function BillsPage() {
   const demo = sessionStorage.getItem('siteflow_user')?.includes('demo-owner')
   const [projectId, setProjectId] = useState('')
+  const [billDateFilter, setBillDateFilter] = useState('')
+  const [billStatus, setBillStatus] = useState('')
   const [show, setShow] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null)
@@ -44,10 +46,11 @@ export function BillsPage() {
   }, [projectsQuery.data, projectId])
 
   const billsQuery = useQuery({
-    queryKey: ['bills', projectId],
+    queryKey: ['bills', projectId, billDateFilter, billStatus],
     queryFn: async () => {
       if (demo) return demoBills
-      return (await api.get(`/projects/${projectId}/bills`)).data.data as EntityRecord[]
+      const params = Object.fromEntries(Object.entries({ status: billStatus, date: billDateFilter }).filter(([, value]) => value))
+      return (await api.get(`/projects/${projectId}/bills`, { params })).data.data as EntityRecord[]
     },
     enabled: !!projectId,
   })
@@ -156,6 +159,10 @@ export function BillsPage() {
                 {String(p.project_code)} — {String(p.project_name)}
               </option>
             ))}
+          </select>
+          <input type="date" value={billDateFilter} onChange={(event) => setBillDateFilter(event.target.value)} aria-label="Filter bills by date" />
+          <select value={billStatus} onChange={(event) => setBillStatus(event.target.value)} aria-label="Filter bills by status">
+            <option value="">All statuses</option><option value="draft">Draft</option><option value="submitted">Submitted</option><option value="certified">Certified</option>
           </select>
         </div>
 

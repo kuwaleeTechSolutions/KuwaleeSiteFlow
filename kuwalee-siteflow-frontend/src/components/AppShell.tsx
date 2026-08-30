@@ -3,11 +3,14 @@ import { useState } from 'react'
 import * as Icons from 'lucide-react'
 import { useAuth } from '../lib/auth'
 
-type NavItem = { path: string; title: string; icon: string; permission?: string }
+type NavItem = { path: string; title: string; icon: string; permission?: string; anyPermission?: string[] }
 type NavGroup = { name: string; items: NavItem[] }
 
 const tenantGroups: NavGroup[] = [
-  { name: 'Overview', items: [{ path: '/', title: 'Dashboard', icon: 'LayoutDashboard' }] },
+  { name: 'Overview', items: [
+    { path: '/', title: 'Dashboard', icon: 'LayoutDashboard' },
+    { path: '/approvals', title: 'Approvals', icon: 'ClipboardCheck', anyPermission: ['daily_reports.approve', 'measurements.approve', 'billing.approve'] },
+  ] },
   {
     name: 'Field operations',
     items: [
@@ -64,7 +67,8 @@ export function AppShell() {
   // route by the backend's EnsureOrganizationContext middleware — show
   // them ONLY the system administration menu.
   const groups = user?.is_super_admin ? superAdminGroups : tenantGroups
-  const can = (permission?: string) => !permission || user?.permissions?.includes(permission)
+  const can = (permission?: string, anyPermission?: string[]) =>
+    (!permission || user?.permissions?.includes(permission)) && (!anyPermission || anyPermission.some((item) => user?.permissions?.includes(item)))
 
   return (
     <div className="app-shell">
@@ -81,7 +85,7 @@ export function AppShell() {
         </div>
         <nav>
           {groups.map((g) => {
-            const visibleItems = g.items.filter((item) => can(item.permission))
+            const visibleItems = g.items.filter((item) => can(item.permission, item.anyPermission))
             if (visibleItems.length === 0) return null
             return (
             <section key={g.name}>
